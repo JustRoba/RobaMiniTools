@@ -1,12 +1,13 @@
 main:
   media_dir: D:\temp\Smartphone Backup
-  month: false
-  day: false
 
 options:
+  # creates a video folder in year folders
+  video_folder: true
   # if no exif or image data available take os creation time
-  creation_time_fallback: false
+  # may a bit inaccurate
+  creation_time_fallback: true
   # only if creation_time_fallback is false
-  # puts media without meta data into this actual year folder
+  # puts media without exif meta data into the folder of the actual year
   put_no_date_media_this_year: false
   print_debug: true

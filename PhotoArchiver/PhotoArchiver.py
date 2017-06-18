@@ -1,5 +1,6 @@
 from pathlib import Path
 import os.path
+import shutil
 import time
 import yaml
 import re
@@ -18,15 +19,52 @@ def archive_media() -> None:
 def archive_photo(photo_path: Path) -> None:
     """
     Archives photo
-    :param photo_path: path to th photo
+    :param photo_path: path to the photo
     """
-    print('\nInfo for ' + str(photo_path))
+    print('\nInfo for %s' % photo_path)
     date = find_photo_date(photo_path)
     if date:
-        print('Selected date %s' % time.strftime('%Y-%m-%d - %H:%M:%S', date))
-        # TODO archive the photo
+        print('Parsed date %s' % time.strftime('%Y-%m-%d - %H:%M:%S', date))
+        moved_to = move_to(photo_path, str(date.tm_year))
+        print('Moved to %s' % moved_to)
     else:
-        print('nothing found')
+        print_debug('Could not parse any date')
+        if cfg['options']['put_no_date_media_this_year']:
+            now = time.gmtime(time.time())
+            moved_to = move_to(photo_path, str(now.tm_year))
+            print('Moved to this year folder in %s' % moved_to)
+
+
+def archive_video(video_path: Path) -> None:
+    """
+    Archives video
+    :param video_path: path to the video
+    """
+    print('\nInfo for %s' % video_path)
+    date = get_os_file_datetime(video_path)
+
+    extend_str = str(date.tm_year)
+    if cfg['options']['video_folder']:
+        extend_str = extend_str + '/video'
+
+    moved_to = move_to(video_path, extend_str)
+    print('Moved to %s' % moved_to)
+
+
+def move_to(src_file: Path, extend_path: str) -> Path:
+    """
+    Builds a destination folder path out of src_file path without last element
+    and extend_path and moves the source file to this folder
+    :param src_file: file to move
+    :param extend_path: path to extend the source path with
+    :return: the new destination of the file
+    """
+    # TODO check if src_file is a file
+    target_dir = media_dir / extend_path
+    create_if_not_exists(target_dir)
+    target = target_dir / os.path.basename(src_file)
+    shutil.move(str(src_file), str(target))
+    return target
 
 
 def find_photo_date(photo_path: Path) -> time.struct_time:
@@ -50,6 +88,15 @@ def find_photo_date(photo_path: Path) -> time.struct_time:
         return get_os_file_datetime(photo_path)
 
 
+def parse_exif_datetime_string(tag: str) -> time.struct_time:
+    """
+    Parses a string with the format YYYY:MM:DD HH:MM:SS like in the exif information
+    :param tag: the string to parse
+    :return: parsed date
+    """
+    return time.strptime(tag, '%Y:%m:%d %H:%M:%S')
+
+
 def get_os_file_datetime(path: Path) -> time.struct_time:
     """
     Reads last modified and creation date of the file and returns the oldest
@@ -67,17 +114,13 @@ def get_os_file_datetime(path: Path) -> time.struct_time:
         return time.gmtime(created)
 
 
-def parse_exif_datetime_string(tag: str) -> time.struct_time:
+def create_if_not_exists(folder: Path) -> None:
     """
-    Parses a string with the format YYYY:MM:DD HH:MM:SS like in the exif information
-    :param tag: the string to parse
-    :return: parsed date
+    Creates a folder at the given path no matter if already exists or not
+    Parent folder are created till given path is reachable
+    :param folder: folder to create
     """
-    return time.strptime(tag, '%Y:%m:%d %H:%M:%S')
-
-
-def archive_video(video) -> None:
-    pass
+    folder.mkdir(parents=True, exist_ok=True)
 
 
 def print_debug(msg: str) -> None:
