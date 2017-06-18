@@ -1,0 +1,12 @@
+main:
+  media_dir: D:\temp\Smartphone Backup
+  month: false
+  day: false
+
+options:
+  # if no exif or image data available take os creation time
+  creation_time_fallback: false
+  # only if creation_time_fallback is false
+  # puts media without meta data into this actual year folder
+  put_no_date_media_this_year: false
+  print_debug: true
