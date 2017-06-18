@@ -16,36 +16,46 @@ def archive_media() -> None:
 
 
 def archive_photo(photo_path: Path) -> None:
-    print('\nTags for ' + str(photo_path))
-    date = find_date(photo_path)
+    """
+    Archives photo
+    :param photo_path: path to th photo
+    """
+    print('\nInfo for ' + str(photo_path))
+    date = find_photo_date(photo_path)
     if date:
         print('Selected date %s' % time.strftime('%Y-%m-%d - %H:%M:%S', date))
+        # TODO archive the photo
     else:
         print('nothing found')
 
 
-def find_date(photo_path: Path) -> time.struct_time:
+def find_photo_date(photo_path: Path) -> time.struct_time:
     """
     Parses the date out of all possible metadata in the photo
-    :param photo_path: Path
-    :return: time.struct_time
+    :param photo_path: path to the photo
+    :return: parsed datetime
     """
     file = open(photo_path, 'rb')
     tags = exifread.process_file(file, details=False)
 
-    print_debug('Image DateTime: ' + str(tags.get('Image DateTime')))
+    print_debug('EXIF DateTimeOriginal: ' + str(tags.get('EXIF DateTimeOriginal')))
     if tags.get('EXIF DateTimeOriginal'):
-        return parse_exif_time_string(str(tags.get('EXIF DateTimeOriginal')))
+        return parse_exif_datetime_string(str(tags.get('EXIF DateTimeOriginal')))
 
     print_debug('Image DateTime: ' + str(tags.get('Image DateTime')))
     if tags.get('Image DateTime'):
-        return parse_exif_time_string(str(tags.get('Image DateTime')))
+        return parse_exif_datetime_string(str(tags.get('Image DateTime')))
 
     if cfg['options']['creation_time_fallback']:
-        return parse_os_file_time(photo_path)
+        return get_os_file_datetime(photo_path)
 
 
-def parse_os_file_time(path: Path) -> time.struct_time:
+def get_os_file_datetime(path: Path) -> time.struct_time:
+    """
+    Reads last modified and creation date of the file and returns the oldest
+    :param path: path to the file
+    :return: datetime
+    """
     print_debug('Last modified: ' + time.ctime(os.path.getmtime(path)))
     print_debug('Created: ' + time.ctime(os.path.getctime(path)))
     created = os.path.getctime(path)
@@ -57,7 +67,12 @@ def parse_os_file_time(path: Path) -> time.struct_time:
         return time.gmtime(created)
 
 
-def parse_exif_time_string(tag: str) -> time.struct_time:
+def parse_exif_datetime_string(tag: str) -> time.struct_time:
+    """
+    Parses a string with the format YYYY:MM:DD HH:MM:SS like in the exif information
+    :param tag: the string to parse
+    :return: parsed date
+    """
     return time.strptime(tag, '%Y:%m:%d %H:%M:%S')
 
 
@@ -66,6 +81,10 @@ def archive_video(video) -> None:
 
 
 def print_debug(msg: str) -> None:
+    """
+    Prints debug message if debugging is enabled in config
+    :param msg: msg to print
+    """
     if cfg['options']['print_debug']:
         print(msg)
 
