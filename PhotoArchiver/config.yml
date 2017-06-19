@@ -1,13 +1,25 @@
 main:
+  # the directory to search for media files
   media_dir: D:\temp\Smartphone Backup
+
+  # if 'ignore_duplicate' ist false files with a name already existing
+  # gonna get a counter and a suffix between name and counter this
+  duplicate_suffix: _
 
 options:
   # creates a video folder in year folders
   video_folder: true
+
   # if no exif or image data available take os creation time
   # may a bit inaccurate
   creation_time_fallback: true
+
   # only if creation_time_fallback is false
   # puts media without exif meta data into the folder of the actual year
   put_no_date_media_this_year: false
+
+  # if true files with a name already existing in the target folder
+  # gonna be ignored and let on its source folder
+  ignore_duplicate: false
+
   print_debug: true

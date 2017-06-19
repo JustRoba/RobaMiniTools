@@ -21,18 +21,16 @@ def archive_photo(photo_path: Path) -> None:
     Archives photo
     :param photo_path: path to the photo
     """
-    print('\nInfo for %s' % photo_path)
+    print('\nInfo for %s' % os.path.basename(photo_path))
     date = find_photo_date(photo_path)
     if date:
         print('Parsed date %s' % time.strftime('%Y-%m-%d - %H:%M:%S', date))
-        moved_to = move_to(photo_path, str(date.tm_year))
-        print('Moved to %s' % moved_to)
+        move_to(photo_path, str(date.tm_year))
     else:
         print_debug('Could not parse any date')
         if cfg['options']['put_no_date_media_this_year']:
             now = time.gmtime(time.time())
-            moved_to = move_to(photo_path, str(now.tm_year))
-            print('Moved to this year folder in %s' % moved_to)
+            move_to(photo_path, str(now.tm_year))
 
 
 def archive_video(video_path: Path) -> None:
@@ -40,15 +38,14 @@ def archive_video(video_path: Path) -> None:
     Archives video
     :param video_path: path to the video
     """
-    print('\nInfo for %s' % video_path)
+    print('\nInfo for %s' % os.path.basename(video_path))
     date = get_os_file_datetime(video_path)
 
     extend_str = str(date.tm_year)
     if cfg['options']['video_folder']:
         extend_str = extend_str + '/video'
 
-    moved_to = move_to(video_path, extend_str)
-    print('Moved to %s' % moved_to)
+    move_to(video_path, extend_str)
 
 
 def move_to(src_file: Path, extend_path: str) -> Path:
@@ -59,12 +56,41 @@ def move_to(src_file: Path, extend_path: str) -> Path:
     :param extend_path: path to extend the source path with
     :return: the new destination of the file
     """
-    # TODO check if src_file is a file
-    target_dir = media_dir / extend_path
-    create_if_not_exists(target_dir)
-    target = target_dir / os.path.basename(src_file)
-    shutil.move(str(src_file), str(target))
-    return target
+    if src_file.is_file():
+        target_dir = media_dir / extend_path
+        if not cfg['options']['ignore_duplicate'] and (target_dir / os.path.basename(src_file)).exists():
+            src_file = handle_duplicates_in_target(src_file, target_dir)
+            create_if_not_exists(target_dir)
+            shutil.move(str(src_file), str(target_dir))
+            print('Moved to %s' % target_dir)
+            return target_dir
+        else:
+            print('Duplicate Ignored!!')
+
+
+def handle_duplicates_in_target(src_file: Path, target_dir: Path) -> Path:
+    """
+    Adds or increments a counter to the src file till it can be moved
+    to target_dir without overwriting existing file
+    :param src_file: file to check
+    :param target_dir: target directory
+    """
+    path, extension = os.path.splitext(src_file)
+    file_name = os.path.basename(path)
+    candidate = file_name+extension
+
+    index = 0
+    ls = set(os.listdir(str(target_dir)))
+    format_pattern = '{}' + cfg['main']['duplicate_suffix'] + '{}{}'
+    while candidate in ls:
+        print('%s already exists in %s' % (candidate, target_dir))
+        candidate = format_pattern.format(file_name, index, extension)
+        print('Trying %s' % candidate)
+        index += 1
+
+    renamed_src_file = media_dir / candidate
+    os.rename(str(src_file), str(renamed_src_file))
+    return renamed_src_file
 
 
 def find_photo_date(photo_path: Path) -> time.struct_time:
