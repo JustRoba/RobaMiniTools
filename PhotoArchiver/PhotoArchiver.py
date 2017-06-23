@@ -80,8 +80,8 @@ def handle_duplicates_in_target(src_file: Path, target_dir: Path) -> Path:
     candidate = file_name+extension
 
     index = 0
-    ls = set(os.listdir(str(target_dir)))
     format_pattern = '{}' + cfg['main']['duplicate_suffix'] + '{}{}'
+    ls = set(os.listdir(str(target_dir)))
     while candidate in ls:
         print('%s already exists in %s' % (candidate, target_dir))
         candidate = format_pattern.format(file_name, index, extension)
