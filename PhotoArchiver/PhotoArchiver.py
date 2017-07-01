@@ -6,8 +6,26 @@ import yaml
 import re
 import exifread
 
+# ------- Global -------
+media_dir = None
+cfg = None
+
 
 # ------- Functions -------
+def main() -> None:
+    global cfg, media_dir
+
+    with open("config.yml", 'r') as configFile:
+        cfg = yaml.load(configFile)
+
+    media_dir = Path(cfg['main']['media_dir'])
+
+    if media_dir.exists() & media_dir.is_dir():
+        archive_media()
+    else:
+        print(str(media_dir) + ' neither exists or is a folder.')
+
+
 def archive_media() -> None:
     for media in media_dir.iterdir():
         if re.match(r'^.+\.(png|jpg|jpeg)$', str(media), re.IGNORECASE):
@@ -58,8 +76,14 @@ def move_to(src_file: Path, extend_path: str) -> Path:
     """
     if src_file.is_file():
         target_dir = media_dir / extend_path
-        if not cfg['options']['ignore_duplicate'] and (target_dir / os.path.basename(src_file)).exists():
-            src_file = handle_duplicates_in_target(src_file, target_dir)
+        source_file_exists_in_target = (target_dir / os.path.basename(src_file)).exists()
+
+        if (not cfg['options']['ignore_duplicate'] and source_file_exists_in_target)\
+                or not source_file_exists_in_target:
+
+            if source_file_exists_in_target:
+                src_file = handle_duplicates_in_target(src_file, target_dir)
+
             create_if_not_exists(target_dir)
             shutil.move(str(src_file), str(target_dir))
             print('Moved to %s' % target_dir)
@@ -159,12 +183,5 @@ def print_debug(msg: str) -> None:
 
 
 # ------- Start point -------
-with open("config.yml", 'r') as configFile:
-    cfg = yaml.load(configFile)
-
-media_dir = Path(cfg['main']['media_dir'])
-
-if media_dir.exists() & media_dir.is_dir():
-    archive_media()
-else:
-    print(str(media_dir) + ' neither exists or is a folder.')
+if __name__ == "__main__":
+    main()
